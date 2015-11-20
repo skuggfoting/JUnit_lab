@@ -26,138 +26,123 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public final class ECommerceServiceUserTest
 {
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
+	@Rule
+	public ExpectedException thrown = ExpectedException.none();
 
-    @Mock
-    private UserRepository userRepoMock;
-    @Mock
-    private ProductRepository productRepoMock;
-    @Mock
-    private OrderRepository orderRepoMock;
-    @InjectMocks
-    private ECommerceService eCommerceService;
+	@Mock
+	private UserRepository userRepoMock;
+	@Mock
+	private ProductRepository productRepoMock;
+	@Mock
+	private OrderRepository orderRepoMock;
+	@InjectMocks
+	private ECommerceService eCommerceService;
 
-    //setup new user
-    User userOne = new User("MySocialSNr", "MyName", "Secret82");
-    User userTwo = new User("MySocialSNr", "MyName", "Secret82");
+	// setup new users
+	User userOne = new User("MySocialSNr", "MyName", "Secret82");
+	User userTwo = new User("MySocialSNr", "MyName", "Secret82");
 
-    @Test
-    public void shouldThrowECommerceServiceExceptionIfUserStorageIsEmpty() throws RepositoryException
-    {
-        //setup expectation
-        thrown.expect(ECommerceServiceException.class);
-        thrown.expectMessage("No saved users exists ");
+	@Test
+	public void shouldThrowECommerceServiceExceptionIfUserStorageIsEmpty() throws RepositoryException
+	{
+		// setup expectation
+		thrown.expect(ECommerceServiceException.class);
+		thrown.expectMessage("No saved users exists ");
 
-        //setup mock object
-        when(userRepoMock.getAll()).thenThrow( new RepositoryException(""));
+		// setup mock object
+		when(userRepoMock.getAll()).thenThrow(new RepositoryException(""));
 
-        //test method
-        eCommerceService.getAllUsers();
-    }
+		// test method
+		eCommerceService.getAllUsers();
+	}
 
-    @Test
-    public void shouldAddUserWithCorrectUserInput() throws RepositoryException
-    {
-        //setup mock object
-        when(userRepoMock.get(userOne.getUserId())).thenReturn(userOne);
+	@Test
+	public void shouldAddUserWithCorrectUserInput() throws RepositoryException
+	{
+		// test method
+		User userThree = eCommerceService.addUser(userOne);
 
-        //test method
-        eCommerceService.addUser(userOne);
+		// assert equal
+		assertThat(userThree, equalTo(userOne));
 
-        //verify method invocation
-        verify(userRepoMock).create(userOne);
-    }
+		// verify method invocation
+		verify(userRepoMock).create(userOne);
+	}
 
+	@Test
+	public void canGetUserById() throws RepositoryException
+	{
+		// setup mock object
+		when(userRepoMock.get(userOne.getUserId())).thenReturn(userOne);
 
-    @Test
-    public void canGetUserById() throws RepositoryException
-    {
-        //setup mock object
+		// test method
+		User userThree = eCommerceService.findUserById(userOne.getUserId());
 
-        when(userRepoMock.get(userOne.getUserId())).thenReturn(userOne);
-        User userThree =  eCommerceService.findUserById(userOne.getUserId());
-        assertThat(userThree.getUserId(), equalTo(userOne.getUserId()));
+		// assert equal
+		assertThat(userThree.getUserId(), equalTo(userOne.getUserId()));
 
+		// verify method invocation
+		verify(userRepoMock).get(userOne.getUserId());
+	}
 
-        //test method
+	@Test
+	public void canGetAllUsers() throws RepositoryException
+	{
+		// setup list
+		List<User> userList = new ArrayList<>();
+		userList.add(userOne);
+		userList.add(userTwo);
 
+		// setup mock object
+		when(userRepoMock.getAll()).thenReturn(userList);
 
-        //verify method invocation
-        verify(userRepoMock).get(userOne.getUserId());
-    }
+		// test method
+		List<User> userListMock = eCommerceService.getAllUsers();
 
-    @Test
-    public void canGetAllUsers() throws RepositoryException
-    {
-        //setup list
-        List<User> userList = new ArrayList<User>();
-        userList.add(userOne);
-        userList.add(userTwo);
+		// assert equal
+		assertThat(userListMock, equalTo(userList));
+	}
 
-        //setup mock object
-        when(userRepoMock.getAll()).thenReturn(userList);
+	@Test
+	public void canUpdateUser() throws RepositoryException
+	{
+		// setup mock object
+		when(userRepoMock.exists(userOne.getUsername())).thenReturn(true);
 
-        //test method
-        List<User> userListMock = eCommerceService.getAllUsers();
+		// test method
+		eCommerceService.updateUser(userOne);
 
-        //assert equal
-        assertThat(userListMock, equalTo(userList));
+		// verify method invocation
+		verify(userRepoMock).exists(userOne.getUsername());
+		verify(userRepoMock).create(userOne); //Lägg till update i crud och kör det istället
+	}
 
-    }
+	@Test
+	public void canDeleteUser() throws RepositoryException
+	{
+		// setup mock object
+		when(userRepoMock.exists(userOne.getUsername())).thenReturn(true);
 
-    @Test
-    public void canUpdateUser() throws RepositoryException
-    {
-        //setup mock object
-        when(userRepoMock.get(userOne.getUserId())).thenReturn(userOne);
+		// test method
+		eCommerceService.deleteUser(userOne.getUsername());
 
-        //test method
-        eCommerceService.updateUser(userOne);
+		// verify method invocation
+		verify(userRepoMock).delete(userOne.getUsername());
+		verify(userRepoMock).exists(userOne.getUsername());
+	}
 
-        //verify method invocation
-        verify(userRepoMock).create(userOne);
-    }
+	@Test
+	public void twoUsersThatAreLogicalTheSameShouldBeEqual()
+	{
+		// assert equal
+		assertThat(userOne, is(equalTo(userTwo)));
+	}
 
-    @Test
-    public void canDeleteUser() throws RepositoryException {
-
-        //setup mock object
-        when(userRepoMock.exists(userOne.getUsername())).thenReturn(true);
-
-        //test method
-        eCommerceService.deleteUser(userOne);
-
-        //verify method invocation
-        verify(userRepoMock).delete(userOne.getUsername());
-        verify(userRepoMock).exists(userOne.getUsername());
-
-    }
-
-    @Test
-    public void shouldThrowECommerceServiceExceptionWhenTryingToDeleteNonExistingUser() throws RepositoryException
-    {
-        //setup expectation
-        thrown.expect(ECommerceServiceException.class);
-        thrown.expectMessage("Can not delete user that does not exist");
-
-        //setup mock object
-        when(userRepoMock.exists(userOne.getUsername())).thenReturn(false);
-
-        //test method
-        eCommerceService.deleteUser(userOne);
-    }
-
-    @Test
-    public void twoUsersThatAreLogicalTheSameShouldBeEqual()
-    {
-        assertThat(userOne, is(equalTo(userTwo)));
-    }
-
-    @Test
-    public void twoUsersThatAreEqualShouldProduceSameHashCode()
-    {
-        assertThat(userOne, is(equalTo(userTwo)));
-        assertThat(userOne.hashCode(), is(equalTo(userTwo.hashCode())));
-    }
+	@Test
+	public void twoUsersThatAreEqualShouldProduceSameHashCode()
+	{
+		// assert that equal generate same hashcode
+		assertThat(userOne, is(equalTo(userTwo)));
+		assertThat(userOne.hashCode(), is(equalTo(userTwo.hashCode())));
+	}
 }

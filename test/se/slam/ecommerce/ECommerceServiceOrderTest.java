@@ -2,11 +2,14 @@ package se.slam.ecommerce;
 
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,8 +50,9 @@ public final class ECommerceServiceOrderTest
 	private User anna;
 	private Product product1;
 	private Order order;
+	private Order order2;
+	private List<Order> userAllOrders;
 
-	
 	@Before
 	public void setup()
 	{
@@ -56,46 +60,26 @@ public final class ECommerceServiceOrderTest
 		product1 = new Product("computer", 20000.0, "9873414");
 		order = new Order("20151028", anna);
 		order.addOrderItems(product1, 2);
+		order2 = order;
+		userAllOrders = new ArrayList<>();
+		userAllOrders.add(order);
 	}
 
-//	@Test
-//	public void canAddUser() throws UserInfoException 
-//	{
-//		thrown.expect(UserInfoException.class);
-//		thrown.expectMessage("Not a correct user");
-//		when(userRepoMock.exists(userName)).thenReturn(true);
-//		// User anna = new User(userId, userName, password);
-//
-//		eCommerceService.addUser(anna);
-//		//
-//		// assertThat(anna.getUserId(), equalTo(userId));
-//		// assertThat(anna.getUsername(), equalTo(userName));
-//		// assertThat(anna.getPassword(), equalTo(password));
-//
-//		verify(userRepoMock).create(anna);
-//	}
-	
-// MIN KOOOOOOOOOOOD HÄR UNDER:
-
-//Create order-tester	
-	
-	@Test//Check success
+	// Create order-tester
+	@Test // Check success
 	public void canAddOrder() throws RepositoryException
 	{
-		
-		//Lägg till Id-koll!!!
-		
 		when(orderRepoMock.createOrder(order)).thenReturn(order);
 		assertThat(order.getOrderId(), equalTo(null));
-		
+
 		Order orderIdFromRepo = eCommerceService.createOrder(order);
 
 		assertThat(orderIdFromRepo.getOrderId(), equalTo(order.getOrderId()));
-		
+
 		verify(orderRepoMock).createOrder(order);
 	}
 
-	@Test//Check successful failure
+	@Test // Check successful failure
 	public void checkCorrectOrder() throws ECommerceServiceException
 	{
 		Product product2 = new Product("hat", 40000.87, "098312094");
@@ -107,9 +91,18 @@ public final class ECommerceServiceOrderTest
 		eCommerceService.createOrder(order);
 	}
 
-	
-//FindOrderForSpecificOrderId-tester
-	
+	@Test // Check createOrder failure
+	public void checkCreateOrderFailure() throws RepositoryException
+	{
+		thrown.expect(ECommerceServiceException.class);
+		thrown.expectMessage("Could not create product");
+
+		when(orderRepoMock.createOrder(order)).thenThrow(new RepositoryException(""));
+
+		eCommerceService.createOrder(order);
+	}
+
+	// FindOrderForSpecificOrderId-tester
 	@Test
 	public void checkFindOrderById() throws RepositoryException
 	{
@@ -117,68 +110,57 @@ public final class ECommerceServiceOrderTest
 		Order orderFromRepo = eCommerceService.findOrderById(order.getOrderId());
 
 		assertThat(orderFromRepo.getOrderId(), equalTo(order.getOrderId()));
-		
+
 		verify(orderRepoMock).get(order.getOrderId());
 	}
-	
+
 	@Test
 	public void checkFindOrderForSpecificOrderId() throws RepositoryException
 	{
 		when(orderRepoMock.get(order.getOrderId())).thenReturn(order);
 		Order orderFromRepo = eCommerceService.findOrderById(order.getOrderId());
-		
+
 		assertThat(orderFromRepo, equalTo(order));
-		
+
 		verify(orderRepoMock).get(order.getOrderId());
 	}
-	
-//Get all orders-tester
-	
-	@Test//Check success
+
+	// Get all orders-tester
+	@Test // Check success
 	public void checkGetAllOrders() throws RepositoryException
 	{
-		//En List med alla ordrar för en specifik användare
-		ArrayList<Order> userAllOrders = new ArrayList<>();
-		userAllOrders.add(order);
-		
-		//En Map med alla användare och deras resp. ordrar
-		HashMap<String, ArrayList<Order>> allOrders = new HashMap<>();
-		
-		//Placerar alla användarens ordrar i Map
+		// En Map med alla användare och deras resp. ordrar
+		HashMap<String, List<Order>> allOrders = new HashMap<>();
+
+		// Placerar alla användarens ordrar i Map
 		allOrders.put(anna.getUserId(), userAllOrders);
-		
-		//En Collection av alla användares ordrar tillsammans
-		Collection<ArrayList<Order>> allUsersOrders = allOrders.values();
-		
+
+		// En Collection av alla användares ordrar tillsammans
+		Collection<List<Order>> allUsersOrders = allOrders.values();
+
 		when(orderRepoMock.getAllOrders()).thenReturn(allUsersOrders);
-		Collection<ArrayList<Order>> orderFromRepo = eCommerceService.getAllOrders();
+		Collection<List<Order>> orderFromRepo = eCommerceService.getAllOrders();
 
 		assertThat(orderFromRepo, (equalTo(allUsersOrders)));
 
 		verify(orderRepoMock).getAllOrders();
 	}
-	
-	@Test//Check failure
-	public void shouldThrowOrderInfoExceptionWhenTyingToGetAllWhenNoOrdersExist() throws RepositoryException
+
+	@Test // Check failure
+	public void shouldThrowECommerceServiceExceptionWhenTyingToGetAllWhenNoOrdersExist() throws RepositoryException
 	{
 		thrown.expect(ECommerceServiceException.class);
 		thrown.expectMessage("No orders");
-		
+
 		when(orderRepoMock.getAllOrders()).thenThrow(new RepositoryException(""));
-		
+
 		eCommerceService.getAllOrders();
-		
-		verify(orderRepoMock).getAllOrders();
 	}
 
-//Get all orders for specific user-tester
-	
-	@Test//Check success
+	// Get all orders for specific user-tester
+	@Test // Check success
 	public void checkGetAllOrdersForSpecificUser() throws RepositoryException
 	{
-		ArrayList<Order> userAllOrders = new ArrayList<>();
-		userAllOrders.add(order);
-		
 		when(userRepoMock.get(anna.getUserId())).thenReturn(anna);
 		when(orderRepoMock.getAllOrdersFromUser(anna)).thenReturn(userAllOrders);
 		Collection<Order> orderFromRepo = eCommerceService.getAllOrders(anna);
@@ -187,76 +169,73 @@ public final class ECommerceServiceOrderTest
 
 		verify(orderRepoMock).getAllOrdersFromUser(anna);
 	}
-	
-	@Test//Check failure
-	public void shouldThrowOrderInfoExceptionWhenTryingToGetAnOrderForASpecificUserThatDoesNotExist() throws RepositoryException
+
+	@Test // Check failure
+	public void shouldThrowECommerceServiceExceptionWhenTryingToGetAnOrderForASpecificUserThatDoesNotExist() throws RepositoryException
 	{
 		thrown.expect(ECommerceServiceException.class);
 		thrown.expectMessage("No such user or no order");
-		
+
 		when(orderRepoMock.getAllOrdersFromUser(anna)).thenThrow(new RepositoryException(""));
-		
+
 		eCommerceService.getAllOrders(anna);
-		
-		verify(orderRepoMock).get(anna.getUserId());
 	}
-	
-//Delete-tester
-	
+
+	// Delete-tester
 	@Test
-	public void shouldThrowOrderInfoExceptionWhenTyingToDeleteAnOrderThatDoesNotExist() throws RepositoryException
+	public void shouldThrowECommerceServiceExceptionWhenTyingToDeleteAnOrderThatDoesNotExist() throws RepositoryException
 	{
 		thrown.expect(ECommerceServiceException.class);
 		thrown.expectMessage("No such order");
-		
+
 		when(orderRepoMock.delete(order.getOrderId())).thenThrow(new RepositoryException(""));
-		
+
 		eCommerceService.deleteOrder(order.getOrderId());
-		
-		verify(orderRepoMock).get(order.getOrderId());
 	}
-	
+
 	@Test
 	public void verifyCallOfDelete() throws RepositoryException
 	{
 		when(orderRepoMock.get(order.getOrderId())).thenReturn(order);
-		
+
 		eCommerceService.deleteOrder(order.getOrderId());
-		
+
 		verify(orderRepoMock).delete(order.getOrderId());
 	}
-	
-	
-//Update-tester:
-	
+
+	// Update-tester:
 	@Test
-	public void shouldThrowOrderInfoExceptionWhenTyingToUpdateAnOrderThatDoesNotExist() throws RepositoryException
+	public void shouldThrowECommerceServiceExceptionWhenTyingToUpdateAnOrderThatDoesNotExist() throws RepositoryException
 	{
 		thrown.expect(ECommerceServiceException.class);
 		thrown.expectMessage("No such order");
-		
-		when(orderRepoMock.createOrder(order)).thenThrow(new RepositoryException(""));
-		
+
+		when(orderRepoMock.update(order)).thenThrow(new RepositoryException(""));
+
 		eCommerceService.updateOrder(order);
-		
-		verify(orderRepoMock).get(order.getOrderId());
 	}
-	
+
 	@Test
 	public void verifyCallOfUpdate() throws RepositoryException
 	{
 		when(orderRepoMock.get(order.getOrderId())).thenReturn(order);
-		
+
 		eCommerceService.updateOrder(order);
-		
-		verify(orderRepoMock).createOrder(order);
+
+		verify(orderRepoMock).update(order);
+	}
+
+	@Test
+	public void twoOrdersThatAreLogicalTheSameShouldBeEqual()
+	{
+		assertThat(order, is(equalTo(order2)));
+	}
+
+	@Test
+	public void twoOrdersThatAreEqualShouldProduceSameHashCode()
+	{
+		// assert that equal generate same hashcode
+		assertThat(order, is(equalTo(order2)));
+		assertThat(order.hashCode(), is(equalTo(order2.hashCode())));
 	}
 }
-
-
-
-
-
-
-
-
